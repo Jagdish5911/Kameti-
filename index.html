@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14243B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Kameti – Digital Committee</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
+<script src="config.js"></script>
+<style>
+:root{--bg:#F2F5F8;--surface:#FFFFFF;--ink:#14243B;--mute:#5B6B80;--line:#D9E0E8;--gold:#F2A900;--goldink:#14243B;--ok:#1E8E5A;--bad:#C2410C;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1726;--surface:#17233A;--ink:#EAF0F7;--mute:#9AABC2;--line:#2A3A55;--ok:#4CC38A;--bad:#F0885A}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Nunito Sans",system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px 28px}
+h1,h2{font-family:"Baloo 2",system-ui,sans-serif;line-height:1.15;margin:0}
+h1{font-size:28px;font-weight:800}h2{font-size:20px;margin-bottom:8px}
+p{margin:6px 0;color:var(--mute)}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+label{display:block;font-weight:600;font-size:14px;margin-top:10px}
+input{width:100%;padding:11px 12px;margin-top:4px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+input:read-only{opacity:.7}
+input:focus,button:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:600 16px "Nunito Sans",sans-serif;border:0;border-radius:10px;padding:12px 16px;cursor:pointer;background:var(--gold);color:var(--goldink);width:100%;margin-top:12px}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.sm{width:auto;margin:0;padding:7px 12px;font-size:14px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.pbtn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);color:var(--ink);width:auto;margin:0;padding:5px 12px 5px 6px;border-radius:99px;font-size:14px}
+.av{width:30px;height:30px;border-radius:50%;background:var(--gold);color:var(--goldink);display:grid;place-items:center;font-weight:800}
+.pot{font-family:"Baloo 2",sans-serif;font-size:38px;font-weight:800;line-height:1}
+.mem{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.mem.first{border-top:0}
+.mem .n{flex:1;min-width:0}.mem .n b{display:block}.mem .n small{color:var(--mute);word-break:break-all}
+.tag{font-size:12px;font-weight:700;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.tag.won,.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.late{color:var(--bad);border-color:var(--bad)}
+.chk{width:24px;height:24px;margin:0;accent-color:var(--ok)}
+.wheel{font-family:"Baloo 2",sans-serif;font-size:26px;font-weight:800;text-align:center;padding:16px 8px;border:2px dashed var(--gold);border-radius:12px;margin-top:12px;min-height:72px;display:flex;align-items:center;justify-content:center}
+.pay{border-left:4px solid var(--ok);padding:10px 12px;background:var(--bg);border-radius:8px;margin-top:12px}
+.alert{padding:10px 12px;background:var(--surface);border-radius:8px;margin-top:14px;border:1px solid var(--line);border-left:4px solid var(--gold)}
+.alert.bad{border-left-color:var(--bad)}
+.note{font-size:13px;color:var(--mute);margin-top:10px}.err{color:var(--bad);font-size:14px;margin-top:8px}
+.qr{background:#fff;padding:12px;border-radius:12px;width:fit-content;margin:12px auto 0}.qr svg{display:block;width:200px;height:200px}
+.back{background:none;border:0;color:var(--mute);width:auto;padding:4px 0;margin:0 0 8px}
+.card{cursor:pointer}
+footer{margin-top:28px;text-align:center;font-size:12px;color:var(--mute)}
+</style>
+</head>
+<body>
+<main id="app"><p>Load ho raha hai…</p></main>
+<script>
+firebase.initializeApp(window.FIREBASE_CONFIG);
+const auth=firebase.auth(),db=firebase.firestore(),fns=firebase.app().functions('asia-south1');
+const call=async(n,d)=>{try{return(await fns.httpsCallable(n)(d||{})).data}catch(e){throw new Error(e.message&&e.message!=='INTERNAL'?e.message:'Kuch gadbad hui. Dobara try karein.')}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>'₹'+Number(n).toLocaleString('en-IN');
+const DAY=864e5,today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const fmt=d=>d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+const dueOf=g=>{const b=parse(g.start);return new Date(b.getFullYear(),b.getMonth()+g.month-1,b.getDate())};
+const dayNo=g=>Math.floor((today()-dueOf(g))/DAY)+1;
+const pct=n=>n>=10?5:n>=6?3:0;
+const amtNow=g=>Math.round(g.amount*(1+pct(dayNo(g))/100));
+const okUpi=u=>/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(u);
+const okMail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+const done=g=>g.month>g.members.length;
+const lbl=m=>esc(m.name)+(m.slot>1?` (hissa ${m.slot})`:'');
+const complete=u=>u&&u.name&&u.aadhaar4&&u.addr&&u.addr.line&&u.mobile;
+
+let U=null,G=[],ready=false,busy=false,view={n:'dash'},A={tab:'login',m:'mobile',otp:null,id:''},timer,unsubs=[],dirty=false;
+const go=(n,id)=>{view={n,id};render(true)};
+const two=(b,t,fn)=>{let s=0;const o=b.textContent;b.onclick=()=>{if(!s){s=1;b.textContent=t;setTimeout(()=>{s=0;if(b.isConnected)b.textContent=o},4000)}else fn()}};
+const soft=()=>{const a=document.activeElement;if(a&&a.tagName==='INPUT'&&a.type!=='checkbox'){dirty=true;return}render(false)};
+addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeElement;if(dirty&&!(a&&a.tagName==='INPUT')){dirty=false;render(false)}},250));
+const act=async(name,data,el)=>{try{await call(name,data);return true}catch(e){if(el)el.textContent=e.message;else alert(e.message);return false}};
+
+auth.onAuthStateChanged(u=>{
+  unsubs.forEach(f=>f());unsubs=[];
+  if(!u){U=null;G=[];ready=true;render(true);return}
+  ready=false;
+  unsubs.push(db.doc('users/'+u.uid).onSnapshot(s=>{U=s.exists?{id:u.uid,...s.data()}:{id:u.uid};ready=true;soft()},e=>console.error(e)));
+  unsubs.push(db.collection('groups').where('memberUids','array-contains',u.uid).onSnapshot(s=>{G=s.docs.map(d=>({id:d.id,...d.data()}));soft()},e=>console.error(e)));
+});
+const logout=()=>{view={n:'dash'};A={tab:'login',m:'mobile',otp:null,id:''};auth.signOut()};
+
+function render(top){
+  clearInterval(timer);const a=$('#app');
+  if(!ready||busy){a.innerHTML='<p>Load ho raha hai…</p>';return}
+  if(!auth.currentUser)auth_(a);else if(!complete(U))profile(a,true);else({dash,profile,newgroup,group})[view.n](a);
+  a.insertAdjacentHTML('beforeend','<footer>© 2026 Kameti. Sabhi adhikar surakshit (All rights reserved).<br>Is app ka code, design aur content copyright se surakshit hai.</footer>');
+  if(top)window.scrollTo(0,0);
+}
+function bar(a){
+  a.insertAdjacentHTML('afterbegin',`<div class="top"><button class="pbtn" id="pf"><span class="av">${esc((U.name||'U')[0].toUpperCase())}</span>Profile</button><button class="ghost sm" id="lo">Logout</button></div>`);
+  $('#pf').onclick=()=>go('profile');$('#lo').onclick=logout;
+}
+
+/* ---------- Login / Register ---------- */
+let CR=null,RV=null;
+const authErr=x=>x.code==='auth/too-many-requests'?'Bahut zyada koshish ho gayi. Thodi der baad try karein.':x.code==='auth/quota-exceeded'?'Aaj ki SMS limit poori ho gayi. Email OTP ya Google use karein.':x.code==='auth/invalid-verification-code'?'OTP galat hai.':x.code==='auth/code-expired'?'OTP expire ho gaya. Naya OTP bhejein.':(x.message||'Kuch gadbad hui.');
+function auth_(a){
+  if(RV){try{RV.clear()}catch(_){}RV=null}
+  const t=A.tab,m=A.m,ph=m==='mobile';
+  a.innerHTML=`<h1>Kameti</h1><p>Digital kameti, seedha UPI payout.</p>
+  <section><div class="row"><button class="${t=='login'?'':'ghost'}" id="tl" style="margin:0">Login</button><button class="${t=='register'?'':'ghost'}" id="tr" style="margin:0">Register</button></div>
+  ${A.otp?`<p style="margin-top:14px">${ph?'Mobile':'Email'} <b>${esc(A.id)}</b> par OTP bheja gaya. ${ph?'Code kuch minute mein expire ho jata hai.':'OTP <b>2 minute</b> tak chalega.'}</p>
+   <label>OTP daalein<input id="o" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></label>
+   ${ph?'':'<p class="note">Time baaki: <b id="cd"></b></p>'}<div class="err" id="e"></div>
+   <button id="vf">OTP verify karein</button><button class="ghost" id="rs">Naya OTP bhejein</button><button class="back" id="ch">← Number/email badlein</button>`
+  :`<div class="row" style="margin-top:14px"><button class="${ph?'':'ghost'} sm" id="mm">Mobile OTP</button><button class="${!ph?'':'ghost'} sm" id="me2">Email OTP</button></div>
+   <label>${ph?'Mobile number (10 ank, India)':'Email'}<input id="id" ${ph?'inputmode="numeric" maxlength="10"':'type="email" autocapitalize="none"'}></label>
+   <div class="err" id="e"></div><button id="send">OTP bhejein</button>
+   <p style="text-align:center;margin:10px 0 0">ya</p>
+   <button class="ghost" id="gg">Google se ${t=='login'?'login':'register'} karein</button>`}
+  <div id="rc"></div></section>`;
+  const err=x=>{$('#e').textContent=x};
+  $('#tl').onclick=()=>{A={tab:'login',m,otp:null,id:''};render()};$('#tr').onclick=()=>{A={tab:'register',m,otp:null,id:''};render()};
+  const sendOtp=async v=>{const b=$('#send')||$('#rs');b.disabled=true;
+    try{
+      await call('checkIdentity',{kind:m,id:v,tab:t});
+      if(ph){RV=new firebase.auth.RecaptchaVerifier('rc',{size:'invisible'});CR=await auth.signInWithPhoneNumber('+91'+v,RV)}
+      else await call('sendOtp',{kind:'email',id:v,tab:t});
+      A.id=v;A.otp={exp:Date.now()+120000};render();
+    }catch(x){err(authErr(x));b.disabled=false;if(RV){try{RV.clear()}catch(_){}RV=null}}};
+  if(!A.otp){
+    $('#mm').onclick=()=>{A.m='mobile';render()};$('#me2').onclick=()=>{A.m='email';render()};
+    $('#send').onclick=()=>{const v=$('#id').value.trim().toLowerCase();
+      if(ph&&!/^[6-9]\d{9}$/.test(v))return err('10 ank ka sahi mobile number daalein.');
+      if(!ph&&!okMail(v))return err('Sahi email likhein.');sendOtp(v)};
+    $('#gg').onclick=async()=>{busy=true;render();
+      try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());await call('googleEnter',{tab:t});busy=false;view={n:'dash'};render(true)}
+      catch(e){if(auth.currentUser)await auth.signOut();busy=false;render();const el=$('#e');if(el)el.textContent=authErr(e)}};
+    return;
+  }
+  $('#ch').onclick=()=>{A.otp=null;render()};$('#rs').onclick=()=>sendOtp(A.id);
+  if(!ph){
+    const left=()=>Math.max(0,Math.ceil((A.otp.exp-Date.now())/1000)),tick=()=>{const l=left();$('#cd').textContent=l?Math.floor(l/60)+':'+String(l%60).padStart(2,'0'):'OTP expire ho gaya';$('#vf').disabled=!l};
+    tick();timer=setInterval(()=>{if(!$('#cd'))return clearInterval(timer);tick()},1000);
+  }
+  $('#vf').onclick=async()=>{const code=$('#o').value.trim();$('#vf').disabled=true;
+    if(ph){
+      if(!CR){$('#vf').disabled=false;return err('Pehle OTP mangwayein.')}
+      try{await CR.confirm(code);busy=true;render();await call('phoneEnter',{tab:t});busy=false;A.otp=null;CR=null;view={n:'dash'};render(true)}
+      catch(x){if(auth.currentUser)await auth.signOut();busy=false;render();const el=$('#e');if(el)el.textContent=authErr(x)}
+      return;
+    }
+    try{const r=await call('verifyOtp',{kind:'email',id:A.id,code,tab:t});busy=true;render();await auth.signInWithCustomToken(r.token);busy=false;view={n:'dash'};A.otp=null;render(true)}
+    catch(e){busy=false;render();const el=$('#e');if(el)el.textContent=e.message}};
+}
+
+/* ---------- Dashboard ---------- */
+function reminders(){
+  const out=[];G.forEach(g=>{if(done(g))return;
+    const idx=g.members.map((x,i)=>x.uid===U.id?i:-1).filter(i=>i>=0),unpaid=idx.filter(i=>!g.paid[i]).length,diff=Math.round((dueOf(g)-today())/DAY);
+    if(unpaid&&(diff===0||diff===1))out.push({g,diff,unpaid})});return out;
+}
+function dash(a){
+  const act_=G.filter(g=>!done(g)),old=G.filter(done),rem=reminders();
+  const row=g=>`<div class="mem card" data-id="${g.id}"><div class="n"><b>🔒 ${esc(g.name)}</b><small>${g.members.length} hisse · ${inr(g.amount)}/mahina · ${done(g)?'Poori ho chuki':'Mahina '+g.month+'/'+g.members.length}</small></div>${g.owner===U.id?'<span class="tag ok">Admin</span>':''}</div>`;
+  a.innerHTML=`<h1>Dashboard</h1><p>Namaste, ${esc(U.name)}</p>
+  ${U.upiOk?'':'<div class="alert bad"><b>UPI verify nahi hai</b><br><small>Group banane ya pot pane ke liye profile mein UPI verify karein.</small></div>'}
+  ${rem.map(r=>`<div class="alert"><b>${r.diff?'Kal':'Aaj'} kist due hai</b><br><small>${esc(r.g.name)}: ${inr(r.g.amount)} · ${r.unpaid} hissa baaki</small></div>`).join('')}
+  <section><h2>Meri kameti</h2>${act_.length?act_.map(row).join(''):'<p>Abhi koi chalu kameti nahi.</p>'}
+  <button id="ng" ${U.upiOk?'':'disabled'}>Nayi private kameti banayein</button></section>
+  <section><h2>Poori hui kameti (history)</h2>${old.length?old.map(row).join(''):'<p>Khatam hone ke baad kameti yahan hamesha save rahegi.</p>'}</section>
+  <p class="note">Kist ke 1 din pehle aur usi din subah 9 baje email se yaad dilaya jayega (profile mein email jodein).</p>`;
+  bar(a);$('#ng').onclick=()=>go('newgroup');
+  a.querySelectorAll('.card').forEach(c=>c.onclick=()=>go('group',c.dataset.id));
+}
+
+/* ---------- Profile ---------- */
+function profile(a,first){
+  const u=U,ad=u.addr||{},lockM=u.verifiedKind==='mobile',lockE=u.verifiedKind==='email';
+  a.innerHTML=`${first?'<h1>Profile poori karein</h1><p>Aage badhne se pehle ye jaankari zaroori hai.</p>':'<button class="back" id="b">← Dashboard</button><h1>Meri profile</h1>'}
+  <section><h2>Pehchaan</h2><label>Poora naam<input id="n" value="${esc(u.name)}"></label>
+  <div class="row"><label>Mobile ${lockM?'(verified)':''}<input id="m" inputmode="numeric" maxlength="10" value="${esc(u.mobile)}" ${lockM?'readonly':''}></label>
+  <label>Email ${lockE?'(verified)':''}<input id="em" type="email" value="${esc(u.email)}" ${lockE?'readonly':''}></label></div>
+  <label>Aadhaar number (12 ank)${u.aadhaar4?` <span class="tag ok">Save: XXXX-XXXX-${esc(u.aadhaar4)}</span>`:''}<input id="ad" inputmode="numeric" maxlength="14" placeholder="${u.aadhaar4?'Badalne ke liye naya number':'1234 5678 9012'}"></label>
+  <p class="note">Poora Aadhaar number aapke phone se bahar nahi jata aur kahin save nahi hota; sirf aakhri 4 ank save hote hain.</p></section>
+  <section><h2>Pata</h2><label>Ghar / mohalla / street<input id="l1" value="${esc(ad.line)}"></label>
+  <div class="row"><label>Sheher<input id="ci" value="${esc(ad.city)}"></label><label>Rajya<input id="st" value="${esc(ad.state)}"></label></div>
+  <label>Pincode<input id="pi" inputmode="numeric" maxlength="6" value="${esc(ad.pin)}"></label></section>
+  <section><h2>UPI</h2><label>UPI ID<input id="up" autocapitalize="none" value="${esc(u.upi)}"></label>
+  <p>${u.upiOk?`<span class="tag ok">Verified ✓</span> ${esc(u.upiName)}`:'<span class="tag late">Verify nahi hua</span>'}</p>
+  <button class="ghost" id="vu">Save karke UPI verify karein</button><div class="err" id="ue"></div></section>
+  <div class="err" id="e"></div><button id="sv">${first?'Save karke aage badhein':'Profile save karein'}</button>`;
+  if(!first){$('#b').onclick=()=>go('dash');bar(a)}else{a.insertAdjacentHTML('afterbegin','<div class="top"><span></span><button class="ghost sm" id="lo">Logout</button></div>');$('#lo').onclick=logout}
+  const collect=()=>{
+    const d={name:$('#n').value.trim(),mobile:$('#m').value.trim(),email:$('#em').value.trim().toLowerCase(),upi:$('#up').value.trim(),
+      addr:{line:$('#l1').value.trim(),city:$('#ci').value.trim(),state:$('#st').value.trim(),pin:$('#pi').value.trim()}},adn=$('#ad').value.replace(/\s/g,'');
+    if(!d.name)throw Error('Naam likhein.');
+    if(!/^[6-9]\d{9}$/.test(d.mobile))throw Error('10 ank ka sahi mobile number daalein.');
+    if(d.email&&!okMail(d.email))throw Error('Sahi email likhein.');
+    if(adn||!u.aadhaar4){if(!/^[2-9]\d{11}$/.test(adn))throw Error('Aadhaar 12 ank ka hona chahiye.');d.aadhaar4=adn.slice(-4)}
+    if(!d.addr.line||!d.addr.city||!d.addr.state)throw Error('Pura pata bharein.');
+    if(!/^\d{6}$/.test(d.addr.pin))throw Error('6 ank ka pincode daalein.');
+    if(d.upi&&!okUpi(d.upi))throw Error('UPI ID sahi likhein, jaise naam@upi.');
+    return d;
+  };
+  $('#sv').onclick=async()=>{const e=$('#e');e.textContent='';let d;try{d=collect()}catch(x){return e.textContent=x.message}
+    $('#sv').disabled=true;if(await act('saveProfile',d,e)){if(!first)go('dash')}else $('#sv').disabled=false};
+  $('#vu').onclick=async()=>{const e=$('#ue');e.textContent='';let d;try{d=collect();if(!d.upi)throw Error('UPI ID likhein.')}catch(x){return e.textContent=x.message}
+    $('#vu').disabled=true;$('#vu').textContent='Verify ho raha hai…';
+    if(!(await act('saveProfile',d,e)&&await act('verifyUpi',{},e))){$('#vu').disabled=false;$('#vu').textContent='Save karke UPI verify karein'}};
+}
+
+/* ---------- New group ---------- */
+function newgroup(a){
+  a.innerHTML=`<button class="back" id="b">← Dashboard</button><h1>Nayi private kameti</h1>
+  <section><label>Group ka naam<input id="n" placeholder="Sharma Parivar Kameti"></label>
+  <div class="row"><label>Har mahine ki kist (₹)<input id="am" type="number" inputmode="numeric"></label><label>Pehli kist ki tareekh<input id="d" type="date"></label></div>
+  <div class="err" id="e"></div><button id="s">Group banayein</button>
+  <div class="note"><b>Niyam:</b> jitne hisse (member), utne mahine ki kameti. Tareekh se 5 din tak koi charge nahi, 6ve se 9ve din 3% extra, 10ve din ya baad 5% extra. Group sirf aap (admin) edit ya delete kar sakte hain.</div></section>`;
+  bar(a);$('#b').onclick=()=>go('dash');
+  $('#s').onclick=async()=>{const e=$('#e'),n=$('#n').value.trim(),am=+$('#am').value,d=$('#d').value;
+    if(!n||!(am>0)||!d)return e.textContent='Naam, kist aur tareekh teeno bharein.';
+    $('#s').disabled=true;try{const r=await call('createGroup',{name:n,amount:am,start:d});go('group',r.id)}catch(x){e.textContent=x.message;$('#s').disabled=false}};
+}
+
+/* ---------- Group ---------- */
+function group(a){
+  const g=G.find(x=>x.id===view.id);if(!g)return go('dash');
+  const adm=g.owner===U.id,n=g.members.length,fin=done(g),keys=Object.keys(g.paid||{}),all=keys.length===n&&n>=3;
+  const pot=keys.reduce((s,k)=>s+g.paid[k].amt,0),dn=dayNo(g),pc=pct(dn),due=dueOf(g),locked=g.month>1||keys.length>0||g.history.length>0;
+  const msg=dn<1?`Kist ki tareekh ${fmt(due)} (${1-dn} din baaki).`:dn<=5?`Din ${dn}: abhi koi extra charge nahi.`:`Din ${dn}: ${pc}% extra charge lag raha hai.`;
+  const hasW=g.winner!==null&&g.winner!==undefined,w=hasW?g.members[g.winner]:null,po=g.payout;
+  const ownerName=(g.members.find(m=>m.uid===g.owner)||{}).name||'';
+  a.innerHTML=`<button class="back" id="b">← Dashboard</button><h1>🔒 ${esc(g.name)}</h1>
+  <p>${fin?'Kameti poori ho gayi.':`Mahina ${g.month} / ${n} · Kist tareekh ${fmt(due)}`} ${adm?'· <span class="tag ok">Aap admin hain</span>':'· Admin: '+esc(ownerName)}</p>
+  ${fin?'':`<div class="alert ${pc?'bad':''}"><b>Is mahine ki kist: ${inr(amtNow(g))}</b><br><small>${msg}</small></div>
+  <section><p>Abhi tak jama pot</p><div class="pot">${inr(pot)}</div><p>${keys.length}/${n} hisse ne kist di</p></section>
+  <section><h2>Members aur kist</h2>${g.members.map((m,i)=>{const pd=g.paid[i];return `<label class="mem ${i?'':'first'}" style="margin:0;font-weight:400"><input type="checkbox" class="chk" data-i="${i}" ${pd?'checked':''} ${!adm||hasW?'disabled':''}><span class="n"><b>${lbl(m)}</b><small>${pd?inr(pd.amt)+' ('+esc(pd.on)+')':'Baaki'}</small></span>${m.won?'<span class="tag won">Pot mila</span>':''}${pd&&pd.amt>g.amount?'<span class="tag late">+'+Math.round((pd.amt/g.amount-1)*100)+'%</span>':''}</label>`}).join('')}
+  ${adm?'<p class="note">Admin tick lagakar kist darj karta hai. Extra charge server ki tareekh se apne aap judta hai.</p>':''}<div class="err" id="pe"></div></section>
+  ${adm&&!locked?`<section><h2>Member jodein</h2><p>Member ka pehle se registered hona zaroori hai.</p>
+  <label>Mobile ya email<input id="mq" autocapitalize="none"></label>
+  <label>Kitne hisse (ek hi person 1 se 5 hisse le sakta hai)<input id="mh" type="number" value="1" min="1" max="5"></label>
+  <div class="err" id="me"></div><button class="ghost" id="add">Member jodein</button></section>`:''}
+  <section><h2>Lucky draw</h2><p>Sirf unka naam nikalega jinhe pot nahi mila.</p>
+  <div class="wheel" id="wheel">${hasW?lbl(w):'—'}</div><div class="err" id="de"></div>
+  ${adm?`<button id="draw" ${!all||hasW?'disabled':''}>${n<3?'Kam se kam 3 hisse chahiye':all?'Naam nikalein':'Pehle sabki kist poori karein'}</button>`:''}
+  ${hasW&&po?`<div class="pay"><b>${lbl(w)} ko ${inr(pot)} milenge</b><br><small>Payout: ${esc(po.name)} · ${esc(po.upi)}${po.transferred?' (transfer kiya gaya)':''}</small>
+  <div class="qr" id="qr"></div><p class="note" style="text-align:center">UPI app se scan karke ${inr(pot)} bhejein</p></div>
+  ${w.uid===U.id?`<div class="pay"><b>Pot kisi aur ko dena chahte hain?</b><label>Naam<input id="tn"></label><label>UPI ID<input id="tu" autocapitalize="none"></label><div class="err" id="te"></div>
+  <button class="ghost" id="tr2">Pot is person ko transfer karein</button>${po.transferred?'<button class="ghost" id="tx">Wapas mujhe dein</button>':''}</div>`:''}
+  ${adm?'<button id="send">Payout ho gaya, agla mahina</button><div class="err" id="se"></div>':''}`:''}</section>`}
+  <section><h2>Ab tak ke draw (history)</h2>${g.history.length?g.history.map((h,i)=>`<div class="mem ${i?'':'first'}"><div class="n"><b>Mahina ${h.m}: ${esc(h.name)}</b><small>${inr(h.amt)} · ${esc(h.to)} · ${esc(h.on)}</small></div></div>`).join(''):'<p>Abhi koi draw nahi hua.</p>'}</section>
+  ${adm?`<section><h2>Admin settings</h2><label>Group ka naam<input id="gn" value="${esc(g.name)}"></label>
+  <label>Mahine ki kist (₹)<input id="ga" type="number" value="${g.amount}" ${locked?'disabled':''}></label><div class="err" id="ge"></div>
+  <button class="ghost" id="gs">Badlav save karein</button><button class="ghost" id="del">Group hamesha ke liye hatayein</button>
+  <p class="note">Sirf group banane wala (admin) edit ya delete kar sakta hai.</p></section>`:''}`;
+  bar(a);$('#b').onclick=()=>go('dash');
+  if(adm){
+    two($('#del'),'Pakka? Poori history bhi hat jayegi. Dobara dabayein',async()=>{if(await act('deleteGroup',{gid:g.id},$('#ge')))go('dash')});
+    $('#gs').onclick=async()=>{const nn=$('#gn').value.trim(),aa=+$('#ga').value;if(!nn||!(aa>0))return $('#ge').textContent='Naam aur kist sahi bharein.';await act('editGroup',{gid:g.id,name:nn,amount:aa},$('#ge'))};
+  }
+  if(fin)return;
+  a.querySelectorAll('.chk').forEach(c=>c.onchange=async()=>{c.disabled=true;if(!(await act('markPaid',{gid:g.id,idx:+c.dataset.i,paid:c.checked},$('#pe')))){c.checked=!c.checked;c.disabled=false}});
+  if($('#add'))$('#add').onclick=()=>act('addMember',{gid:g.id,query:$('#mq').value.trim(),hisse:+$('#mh').value||1},$('#me'));
+  const d=$('#draw');
+  if(d)d.onclick=()=>{d.disabled=true;const pool=g.members.filter(m=>!m.won),el=$('#wheel');let t=0;
+    const iv=setInterval(async()=>{el.textContent=pool[t++%pool.length].name;if(t>20){clearInterval(iv);if(!(await act('drawWinner',{gid:g.id},$('#de'))))d.disabled=false}},90)};
+  if($('#qr')){try{const q=qrcode(0,'M');q.addData(`upi://pay?pa=${encodeURIComponent(po.upi)}&pn=${encodeURIComponent(po.name)}&am=${pot}&cu=INR&tn=${encodeURIComponent('Kameti '+g.name)}`);q.make();$('#qr').innerHTML=q.createSvgTag(4)}catch(e){$('#qr').textContent='QR nahi ban saka'}}
+  if($('#tr2'))$('#tr2').onclick=()=>{const nm=$('#tn').value.trim(),up=$('#tu').value.trim(),e=$('#te');if(!nm)return e.textContent='Naam likhein.';if(!okUpi(up))return e.textContent='UPI ID sahi likhein.';act('setPayout',{gid:g.id,name:nm,upi:up},e)};
+  if($('#tx'))$('#tx').onclick=()=>act('setPayout',{gid:g.id,reset:true},$('#te'));
+  if($('#send'))$('#send').onclick=()=>{$('#send').disabled=true;act('completeMonth',{gid:g.id},$('#se')).then(ok=>{if(!ok)$('#send').disabled=false})};
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+{"hosting":{"public":"public","ignore":["firebase.json","**/.*"]},
+ "functions":[{"source":"functions","codebase":"default"}],
+ "firestore":{"rules":"firestore.rules"}}
